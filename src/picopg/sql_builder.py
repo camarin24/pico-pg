@@ -7,6 +7,7 @@ construct raw SQL queries for `BaseModel` instances.
 from __future__ import annotations
 
 from typing import Any, Type
+from psycopg.sql import SQL, Composed, Identifier
 
 from .models import BaseModel
 
@@ -19,7 +20,7 @@ class SQLBuilder:
     """
 
     @staticmethod
-    def build_insert(model: BaseModel) -> tuple[str, list[Any]]:
+    def build_insert(model: BaseModel) -> tuple[Composed, list[Any]]:
         """Builds an INSERT query from a model instance.
 
         Args:
@@ -33,12 +34,18 @@ class SQLBuilder:
         if data.get(model_class.__primary_key__) is None:
             data.pop(model_class.__primary_key__, None)
 
-        columns = ", ".join(data.keys())
-        placeholders = ", ".join(["%s"] * len(data))
-        query = (
-            f"INSERT INTO {model_class.__table_name__} ({columns}) "
-            f"VALUES ({placeholders}) RETURNING *"
-        )
+        columns = [Identifier(col) for col in data.keys()]
+        placeholders = [SQL("%s")] * len(data)
+        
+        query = Composed([
+            SQL("INSERT INTO"),
+            model_class.__full_table_name__,
+            SQL("("),
+            Composed(columns).join(SQL(", ")),
+            SQL(") VALUES ("),
+            Composed(placeholders).join(SQL(", ")),
+            SQL(") RETURNING *")
+        ])
         return query, list(data.values())
 
     @staticmethod
@@ -46,7 +53,7 @@ class SQLBuilder:
         model_class: Type[BaseModel],
         where: dict[str, Any] | None = None,
         limit: int | None = None,
-    ) -> tuple[str, list[Any]]:
+    ) -> tuple[Composed, list[Any]]:
         """Builds a SELECT query.
 
         Args:
@@ -57,18 +64,24 @@ class SQLBuilder:
         Returns:
             A tuple containing the SQL query and a list of parameters.
         """
-        query = f"SELECT * FROM {model_class.__table_name__}"
+        query_parts = [SQL("SELECT * FROM"), model_class.__full_table_name__]
         params = []
         if where:
-            conditions = " AND ".join([f"{key} = %s" for key in where.keys()])
-            query += f" WHERE {conditions}"
+            conditions = Composed([
+                Composed([Identifier(key), SQL("= %s")])
+                for key in where.keys()
+            ]).join(SQL(" AND "))
+            query_parts.extend([SQL("WHERE"), conditions])
             params.extend(where.values())
         if limit:
-            query += f" LIMIT {limit}"
+            query_parts.extend([SQL("LIMIT %s")])
+            params.append(limit)
+        
+        query = Composed(query_parts)
         return query, params
 
     @staticmethod
-    def build_update(model: BaseModel) -> tuple[str, list[Any]]:
+    def build_update(model: BaseModel) -> tuple[Composed, list[Any]]:
         """Builds an UPDATE query from a model instance.
 
         Args:
@@ -80,16 +93,26 @@ class SQLBuilder:
         model_class = type(model)
         data = model.model_dump()
         pk_value = data.pop(model_class.__primary_key__)
-        set_clause = ", ".join([f"{key} = %s" for key in data.keys()])
-        query = (
-            f"UPDATE {model_class.__table_name__} SET {set_clause} "
-            f"WHERE {model_class.__primary_key__} = %s RETURNING *"
-        )
+        
+        set_parts = Composed([
+            Composed([Identifier(key), SQL("= %s")])
+            for key in data.keys()
+        ]).join(SQL(", "))
+        
+        query = Composed([
+            SQL("UPDATE"),
+            model_class.__full_table_name__,
+            SQL("SET"),
+            set_parts,
+            SQL("WHERE"),
+            Identifier(model_class.__primary_key__),
+            SQL("= %s RETURNING *")
+        ])
         params = list(data.values()) + [pk_value]
         return query, params
 
     @staticmethod
-    def build_delete(model: BaseModel) -> tuple[str, list[Any]]:
+    def build_delete(model: BaseModel) -> tuple[Composed, list[Any]]:
         """Builds a DELETE query.
 
         Args:
@@ -100,16 +123,20 @@ class SQLBuilder:
         """
         model_class = type(model)
         pk_value = getattr(model, model_class.__primary_key__)
-        query = (
-            f"DELETE FROM {model_class.__table_name__} "
-            f"WHERE {model_class.__primary_key__} = %s"
-        )
+        
+        query = Composed([
+            SQL("DELETE FROM"),
+            model_class.__full_table_name__,
+            SQL("WHERE"),
+            Identifier(model_class.__primary_key__),
+            SQL("= %s")
+        ])
         return query, [pk_value]
 
     @staticmethod
     def build_count(
         model_class: Type[BaseModel], where: dict[str, Any] | None = None
-    ) -> tuple[str, list[Any]]:
+    ) -> tuple[Composed, list[Any]]:
         """Builds a COUNT query.
 
         Args:
@@ -119,12 +146,17 @@ class SQLBuilder:
         Returns:
             A tuple containing the SQL query and a list of parameters.
         """
-        query = f"SELECT COUNT(*) as total FROM {model_class.__table_name__}"
+        query_parts = [SQL("SELECT COUNT(*) as total FROM"), model_class.__full_table_name__]
         params = []
         if where:
-            conditions = " AND ".join([f"{key} = %s" for key in where.keys()])
-            query += f" WHERE {conditions}"
+            conditions = Composed([
+                Composed([Identifier(key), SQL("= %s")])
+                for key in where.keys()
+            ]).join(SQL(" AND "))
+            query_parts.extend([SQL("WHERE"), conditions])
             params.extend(where.values())
+        
+        query = Composed(query_parts)
         return query, params
 
     @staticmethod
@@ -133,7 +165,7 @@ class SQLBuilder:
         page: int,
         page_size: int,
         where: dict[str, Any] | None = None,
-    ) -> tuple[str, list[Any]]:
+    ) -> tuple[Composed, list[Any]]:
         """Builds a paginated SELECT query.
 
         Args:
@@ -147,6 +179,10 @@ class SQLBuilder:
         """
         query, params = SQLBuilder.build_select(model_class, where)
         offset = (page - 1) * page_size
-        query += " LIMIT %s OFFSET %s"
+        
+        query = Composed([
+            query,
+            SQL("LIMIT %s OFFSET %s")
+        ])
         params.extend([page_size, offset])
         return query, params

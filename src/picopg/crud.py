@@ -6,6 +6,7 @@ including insert, select, update, delete, and paginate.
 from __future__ import annotations
 
 from typing import Any, Type, TypeVar
+from psycopg.sql import Composed
 
 from psycopg.rows import dict_row
 
@@ -207,7 +208,8 @@ async def paginate(
             # Get total count
             count_query, count_params = SQLBuilder.build_count(model_class, where_dict)
             await cur.execute(count_query, count_params)
-            total_count = (await cur.fetchone())["total"]
+            count_result = await cur.fetchone()
+            total_count = count_result["total"] if count_result else 0
 
             # Get paginated results
             query, params = SQLBuilder.build_paginate(
