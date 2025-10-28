@@ -1,6 +1,6 @@
 [project]
 name = "picopg"
-version = "0.1.1"
+version = "0.1.2"
 description = "A lightweight, Pydantic-powered micro ORM for interacting with PostgreSQL databases, inspired by SQLModel but without the SQLAlchemy dependency."
 readme = "README.md"
 authors = [
