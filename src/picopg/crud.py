@@ -225,3 +225,44 @@ async def paginate(
             results = await cur.fetchall()
             models = [model_class.model_validate(row) for row in results]
             return models, total_count
+
+
+async def select_raw(
+    query: str, params: list[Any] | None = None, model_class: Type[T] | None = None
+) -> list[T] | list[dict[str, Any]]:
+    """Executes a raw SELECT query.
+
+    Args:
+        query: The raw SQL query string.
+        params: An optional list of parameters to pass to the query.
+        model_class: An optional `BaseModel` subclass to validate the results.
+
+    Returns:
+        A list of model instances if `model_class` is provided, otherwise a
+        list of dictionaries.
+    """
+    pool = ConnectionManager.get_pool()
+    async with pool.connection() as conn:
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(query, params)
+            results = await cur.fetchall()
+            if model_class:
+                return [model_class.model_validate(row) for row in results]
+            return results
+
+
+async def execute_raw(query: str, params: list[Any] | None = None) -> int:
+    """Executes a raw query (INSERT, UPDATE, DELETE).
+
+    Args:
+        query: The raw SQL query string.
+        params: An optional list of parameters to pass to the query.
+
+    Returns:
+        The number of affected rows.
+    """
+    pool = ConnectionManager.get_pool()
+    async with pool.connection() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(query, params)
+            return cur.rowcount

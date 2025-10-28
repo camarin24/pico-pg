@@ -15,6 +15,8 @@ from picopg import (
     select_all,
     select_one,
     update,
+    select_raw,
+    execute_raw,
 )
 
 
@@ -312,3 +314,46 @@ async def test_delete_non_existent():
     user = User(id=999, name="Test User", email="test@example.com")
     result = await delete(user)
     assert result is False
+
+
+@pytest.mark.asyncio
+async def test_select_raw():
+    # Setup: Insert users
+    user1 = await insert(User(name="Raw User 1", email="raw1@example.com"))
+    await insert(User(name="Raw User 2", email="raw2@example.com"))
+
+    # Test 1: Raw select with model validation
+    query = 'SELECT * FROM "user" WHERE name = %s'
+    results_as_models = await select_raw(query, ["Raw User 1"], model_class=User)
+    assert len(results_as_models) == 1
+    assert isinstance(results_as_models[0], User)
+    assert results_as_models[0].id == user1.id
+
+    # Test 2: Raw select returning dicts
+    query_all = 'SELECT id, name FROM "user" ORDER BY id'
+    results_as_dicts = await select_raw(query_all)
+    assert len(results_as_dicts) == 2
+    assert isinstance(results_as_dicts[0], dict)
+    assert "email" not in results_as_dicts[0]
+    assert results_as_dicts[0]["name"] == "Raw User 1"
+
+
+@pytest.mark.asyncio
+async def test_execute_raw():
+    # Setup: Insert a user
+    await insert(User(name="Exec User", email="exec@example.com"))
+
+    # Test 1: Raw update
+    update_query = 'UPDATE "user" SET name = %s WHERE email = %s'
+    affected_rows = await execute_raw(update_query, ["Updated Name", "exec@example.com"])
+    assert affected_rows == 1
+    updated_user = await select_one(User, email="exec@example.com")
+    assert updated_user is not None
+    assert updated_user.name == "Updated Name"
+
+    # Test 2: Raw delete
+    delete_query = 'DELETE FROM "user" WHERE email = %s'
+    affected_rows = await execute_raw(delete_query, ["exec@example.com"])
+    assert affected_rows == 1
+    deleted_user = await select_one(User, email="exec@example.com")
+    assert deleted_user is None
