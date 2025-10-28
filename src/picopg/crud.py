@@ -6,7 +6,7 @@ including insert, select, update, delete, and paginate.
 
 from __future__ import annotations
 
-from typing import Any, Type, TypeVar
+from typing import Any, LiteralString, Type, TypeVar
 
 from psycopg.rows import dict_row
 
@@ -204,7 +204,7 @@ async def paginate(
                     f"'{key}' is not a valid field for {model_class.__name__}"
                 )
         where_dict = kwargs
-    
+
     # Default to sorting by primary key for stable pagination
     if order_by is None:
         order_by = model_class.__primary_key__
@@ -228,7 +228,9 @@ async def paginate(
 
 
 async def select_raw(
-    query: str, params: list[Any] | None = None, model_class: Type[T] | None = None
+    query: LiteralString,
+    params: list[Any] | None = None,
+    model_class: Type[T] | None = None,
 ) -> list[T] | list[dict[str, Any]]:
     """Executes a raw SELECT query.
 
@@ -251,7 +253,7 @@ async def select_raw(
             return results
 
 
-async def execute_raw(query: str, params: list[Any] | None = None) -> int:
+async def execute_raw(query: LiteralString, params: list[Any] | None = None) -> int:
     """Executes a raw query (INSERT, UPDATE, DELETE).
 
     Args:
