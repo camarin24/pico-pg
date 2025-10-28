@@ -55,6 +55,7 @@ class SQLBuilder:
         model_class: Type[BaseModel],
         where: dict[str, Any] | None = None,
         limit: int | None = None,
+        order_by: str | list[str] | None = None,
     ) -> tuple[Composed, list[Any]]:
         """Builds a SELECT query.
 
@@ -62,6 +63,7 @@ class SQLBuilder:
             model_class: The model class to query.
             where: An optional dictionary of conditions for the WHERE clause.
             limit: An optional limit for the number of records to return.
+            order_by: An optional field name or list of field names for the ORDER BY clause.
 
         Returns:
             A tuple containing the SQL query and a list of parameters.
@@ -74,6 +76,14 @@ class SQLBuilder:
             ).join(SQL(" AND "))
             query_parts.extend([SQL("WHERE"), conditions])
             params.extend(where.values())
+        
+        if order_by:
+            if isinstance(order_by, str):
+                order_by = [order_by]
+            
+            order_parts = Composed([Identifier(col) for col in order_by]).join(SQL(", "))
+            query_parts.extend([SQL("ORDER BY"), order_parts])
+
         if limit:
             query_parts.extend([SQL("LIMIT %s")])
             params.append(limit)
@@ -171,6 +181,7 @@ class SQLBuilder:
         page: int,
         page_size: int,
         where: dict[str, Any] | None = None,
+        order_by: str | list[str] | None = None,
     ) -> tuple[Composed, list[Any]]:
         """Builds a paginated SELECT query.
 
@@ -179,11 +190,12 @@ class SQLBuilder:
             page: The page number to retrieve.
             page_size: The number of records per page.
             where: An optional dictionary of conditions for the WHERE clause.
+            order_by: An optional field name or list of field names for the ORDER BY clause.
 
         Returns:
             A tuple containing the SQL query and a list of parameters.
         """
-        query, params = SQLBuilder.build_select(model_class, where)
+        query, params = SQLBuilder.build_select(model_class, where, order_by=order_by)
         offset = (page - 1) * page_size
 
         query = Composed([query, SQL("LIMIT %s OFFSET %s")])

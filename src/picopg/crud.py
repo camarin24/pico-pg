@@ -169,6 +169,7 @@ async def paginate(
     page: int,
     page_size: int,
     where: T | None = None,
+    order_by: str | list[str] | None = None,
     **kwargs: Any,
 ) -> tuple[list[T], int]:
     """Fetches a paginated list of models.
@@ -178,6 +179,7 @@ async def paginate(
         page: The page number to retrieve.
         page_size: The number of records per page.
         where: An optional partial model instance for filtering.
+        order_by: An optional field name or list of field names for the ORDER BY clause.
         **kwargs: Keyword arguments for filtering.
 
     Returns:
@@ -202,6 +204,10 @@ async def paginate(
                     f"'{key}' is not a valid field for {model_class.__name__}"
                 )
         where_dict = kwargs
+    
+    # Default to sorting by primary key for stable pagination
+    if order_by is None:
+        order_by = model_class.__primary_key__
 
     async with pool.connection() as conn:
         async with conn.cursor(row_factory=dict_row) as cur:
@@ -213,7 +219,7 @@ async def paginate(
 
             # Get paginated results
             query, params = SQLBuilder.build_paginate(
-                model_class, page, page_size, where_dict
+                model_class, page, page_size, where_dict, order_by
             )
             await cur.execute(query, params)
             results = await cur.fetchall()

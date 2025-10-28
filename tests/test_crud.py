@@ -122,10 +122,22 @@ async def test_delete():
 async def test_paginate():
     for i in range(20):
         await insert(User(name=f"User {i}", email=f"user{i}@example.com"))
+    # Test default sort (by primary key 'id')
     users, total = await paginate(User, page=2, page_size=5)
     assert len(users) == 5
     assert total == 20
+    # Since IDs are 1-20, page 2 should start with ID 6 (User 5)
     assert users[0].name == "User 5"
+
+    # Test explicit sort by name (alphabetical)
+    users_sorted, total_sorted = await paginate(
+        User, page=1, page_size=5, order_by="name"
+    )
+    assert len(users_sorted) == 5
+    assert total_sorted == 20
+    # User 0, User 1, User 10, User 11, User 12 (alphabetical sort)
+    assert users_sorted[0].name == "User 0"
+    assert users_sorted[4].name == "User 12"
 
 
 class Profile(BaseModel):
