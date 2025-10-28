@@ -100,6 +100,22 @@ async def test_select_with_partial_and_kwargs():
 
 
 @pytest.mark.asyncio
+async def test_select_with_list_filter():
+    # Setup: Insert multiple users
+    user1 = await insert(User(name="User 1", email="user1@example.com"))
+    await insert(User(name="User 2", email="user2@example.com"))
+    user3 = await insert(User(name="User 3", email="user3@example.com"))
+
+    # Test filtering by a list of IDs
+    user_ids = [user1.id, user3.id]
+    selected_users = await select_all(User, id=user_ids)
+
+    assert len(selected_users) == 2
+    selected_ids = {user.id for user in selected_users}
+    assert selected_ids == set(user_ids)
+
+
+@pytest.mark.asyncio
 async def test_update():
     user = User(name="Test User", email="test@example.com")
     inserted_user = await insert(user)

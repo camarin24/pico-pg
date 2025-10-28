@@ -71,10 +71,14 @@ class SQLBuilder:
         query_parts = [SQL("SELECT * FROM"), model_class.__full_table_name__]
         params = []
         if where:
-            conditions = Composed(
-                [Composed([Identifier(key), SQL("= %s")]) for key in where.keys()]
-            ).join(SQL(" AND "))
-            query_parts.extend([SQL("WHERE"), conditions])
+            conditions = []
+            for key, value in where.items():
+                if isinstance(value, list):
+                    conditions.append(Composed([Identifier(key), SQL(" = ANY(%s)")]))
+                else:
+                    conditions.append(Composed([Identifier(key), SQL(" = %s")]))
+            
+            query_parts.extend([SQL("WHERE"), Composed(conditions).join(SQL(" AND "))])
             params.extend(where.values())
         
         if order_by:
@@ -166,10 +170,14 @@ class SQLBuilder:
         ]
         params = []
         if where:
-            conditions = Composed(
-                [Composed([Identifier(key), SQL("= %s")]) for key in where.keys()]
-            ).join(SQL(" AND "))
-            query_parts.extend([SQL("WHERE"), conditions])
+            conditions = []
+            for key, value in where.items():
+                if isinstance(value, list):
+                    conditions.append(Composed([Identifier(key), SQL(" = ANY(%s)")]))
+                else:
+                    conditions.append(Composed([Identifier(key), SQL(" = %s")]))
+
+            query_parts.extend([SQL("WHERE"), Composed(conditions).join(SQL(" AND "))])
             params.extend(where.values())
 
         query = Composed(query_parts)
