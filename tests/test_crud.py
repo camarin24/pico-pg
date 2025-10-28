@@ -3,10 +3,12 @@ Tests for the CRUD operations.
 """
 
 import pytest
+import pytest_asyncio
 
 from picopg import (
     BaseModel,
     ConnectionManager,
+    Partial,
     delete,
     insert,
     paginate,
@@ -21,11 +23,6 @@ class User(BaseModel):
     id: int | None = None
     name: str
     email: str
-
-
-
-
-import pytest_asyncio
 
 
 @pytest_asyncio.fixture(autouse=True)
@@ -80,6 +77,29 @@ async def test_select_all():
 
 
 @pytest.mark.asyncio
+async def test_select_with_partial_and_kwargs():
+    # Setup: Insert two users, one active, one inactive
+    await insert(User(name="Active User", email="active@example.com"))
+    await insert(User(name="Inactive User", email="inactive@example.com"))
+
+    # Test 1: Select one using Partial model
+    PartialUser = Partial(User)
+    filter_model = PartialUser(name="Active User")
+    user_by_partial = await select_one(User, where=filter_model)
+    assert user_by_partial is not None
+    assert user_by_partial.email == "active@example.com"
+
+    # Test 2: Select all using keyword arguments
+    all_users = await select_all(User, name="Inactive User")
+    assert len(all_users) == 1
+    assert all_users[0].email == "inactive@example.com"
+
+    # Test 3: Select one with no match
+    no_user = await select_one(User, name="Non Existent")
+    assert no_user is None
+
+
+@pytest.mark.asyncio
 async def test_update():
     user = User(name="Test User", email="test@example.com")
     inserted_user = await insert(user)
@@ -114,8 +134,6 @@ class Profile(BaseModel):
     user_id: int | None = None
     username: str
     bio: str | None = None
-
-
 
 
 @pytest_asyncio.fixture
@@ -155,9 +173,7 @@ async def test_insert_with_null_value(create_profile_table):
     profile = Profile(username="testuser", bio=None)
     inserted_profile = await insert(profile)
     assert inserted_profile.user_id is not None
-    retrieved_profile = await select_one(
-        Profile, user_id=inserted_profile.user_id
-    )
+    retrieved_profile = await select_one(Profile, user_id=inserted_profile.user_id)
     assert retrieved_profile is not None
     assert retrieved_profile.bio is None
 
@@ -178,8 +194,6 @@ class Product(BaseModel):
     material_id: int | None = None
     name: str
     quantity: int
-
-
 
 
 @pytest_asyncio.fixture
@@ -214,9 +228,7 @@ async def test_schema_table_operations(create_schema_and_product_table):
     assert inserted_product.name == "Iron Ore"
 
     # Test select_one
-    selected = await select_one(
-        Product, material_id=inserted_product.material_id
-    )
+    selected = await select_one(Product, material_id=inserted_product.material_id)
     assert selected is not None
     assert selected.name == "Iron Ore"
 
@@ -230,9 +242,7 @@ async def test_schema_table_operations(create_schema_and_product_table):
     assert deleted is True
 
     # Verify deletion
-    final_check = await select_one(
-        Product, material_id=inserted_product.material_id
-    )
+    final_check = await select_one(Product, material_id=inserted_product.material_id)
     assert final_check is None
 
 
@@ -274,4 +284,3 @@ async def test_delete_non_existent():
     user = User(id=999, name="Test User", email="test@example.com")
     result = await delete(user)
     assert result is False
-

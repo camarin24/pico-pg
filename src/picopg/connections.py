@@ -3,6 +3,7 @@
 This module provides a `ConnectionManager` class that abstracts the setup,
 teardown, and access to the `psycopg` asynchronous connection pool.
 """
+
 from __future__ import annotations
 
 from psycopg_pool import AsyncConnectionPool
@@ -14,6 +15,7 @@ class ConnectionManager:
     This class provides a centralized way to initialize, close, and access
     the `psycopg_pool.AsyncConnectionPool`.
     """
+
     _pool: AsyncConnectionPool | None = None
 
     @classmethod
@@ -51,6 +53,5 @@ class ConnectionManager:
             RuntimeError: If the connection manager has not been initialized.
         """
         if cls._pool is None:
-            raise RuntimeError('ConnectionManager has not been initialized.')
+            raise RuntimeError("ConnectionManager has not been initialized.")
         return cls._pool
-

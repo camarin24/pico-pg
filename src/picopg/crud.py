@@ -3,10 +3,10 @@
 This module contains the core functions for interacting with the database,
 including insert, select, update, delete, and paginate.
 """
+
 from __future__ import annotations
 
 from typing import Any, Type, TypeVar
-from psycopg.sql import Composed
 
 from psycopg.rows import dict_row
 

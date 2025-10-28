@@ -4,6 +4,7 @@ This module contains the `Partial` function, which is used to create a new
 `BaseModel` subclass where all fields are marked as optional. This is useful
 for creating "query by example" filters.
 """
+
 from __future__ import annotations
 
 from typing import Type, TypeVar

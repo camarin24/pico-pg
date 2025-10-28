@@ -35,11 +35,11 @@ from datetime import datetime
 
 class User(BaseModel):
     # Optional: Override inferred table name
-    __table_name__ = '"users_table"' 
+    __table_name__ = '"users_table"'
     # Optional: Specify a schema
-    __schema__ = "app_data" 
+    __schema__ = "app_data"
     # Optional: Override primary key (defaults to 'id')
-    __primary_key__ = "user_id" 
+    __primary_key__ = "user_id"
 
     user_id: int | None = None # Primary key field
     username: str

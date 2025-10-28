@@ -4,6 +4,7 @@ This module contains the `BaseModel` class, which serves as the foundation for
 all database models in the PicoPG library. It provides automatic table name
 inference, primary key detection, and schema support.
 """
+
 from __future__ import annotations
 
 import re
@@ -42,13 +43,15 @@ class BaseModel(PydanticBaseModel):
             base_table_name = cls.__table_name__
         else:
             base_table_name = re.sub(r"(?<!^)(?=[A-Z])", "_", cls.__name__).lower()
-        
+
         cls.__table_name__ = base_table_name
 
         # Construct full, quoted table name with schema if provided
         schema = getattr(cls, "__schema__", None)
         if schema:
-            cls.__full_table_name__ = Composed([Identifier(schema), SQL("."), Identifier(base_table_name)])
+            cls.__full_table_name__ = Composed(
+                [Identifier(schema), SQL("."), Identifier(base_table_name)]
+            )
         else:
             cls.__full_table_name__ = Composed([Identifier(base_table_name)])
 
