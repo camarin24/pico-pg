@@ -10,18 +10,18 @@ from picopg import (
     ConnectionManager,
     Partial,
     delete,
+    execute_raw,
     insert,
     paginate,
     select_all,
     select_one,
-    update,
     select_raw,
-    execute_raw,
+    update,
 )
 
 
 class User(BaseModel):
-    _primary_key = "id"
+    __primary_key__ = "id"
     id: int | None = None
     name: str
     email: str
@@ -160,7 +160,7 @@ async def test_paginate():
 
 class Profile(BaseModel):
     __table_name__ = "profiles"
-    _primary_key = "user_id"
+    __primary_key__ = "user_id"
     user_id: int | None = None
     username: str
     bio: str | None = None
@@ -220,7 +220,7 @@ async def test_update_with_null_value(create_profile_table):
 class Product(BaseModel):
     __schema__ = "core"
     __table_name__ = "raw_materials"
-    _primary_key = "material_id"
+    __primary_key__ = "material_id"
     material_id: int | None = None
     name: str
     quantity: int
@@ -345,7 +345,9 @@ async def test_execute_raw():
 
     # Test 1: Raw update
     update_query = 'UPDATE "user" SET name = %s WHERE email = %s'
-    affected_rows = await execute_raw(update_query, ["Updated Name", "exec@example.com"])
+    affected_rows = await execute_raw(
+        update_query, ["Updated Name", "exec@example.com"]
+    )
     assert affected_rows == 1
     updated_user = await select_one(User, email="exec@example.com")
     assert updated_user is not None

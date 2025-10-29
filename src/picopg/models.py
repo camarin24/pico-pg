@@ -10,8 +10,8 @@ from __future__ import annotations
 import re
 from typing import Any, ClassVar
 
+from psycopg.sql import SQL, Composed, Identifier
 from pydantic import BaseModel as PydanticBaseModel
-from psycopg.sql import SQL, Identifier, Composed
 
 
 class classproperty:
@@ -37,7 +37,6 @@ class BaseModel(PydanticBaseModel):
 
     __table_name__: ClassVar[str]
     __full_table_name__: ClassVar[Composed]
-    _primary_key: ClassVar[str | None] = None
     __schema__: ClassVar[str | None] = None
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
@@ -65,9 +64,9 @@ class BaseModel(PydanticBaseModel):
 
     @classproperty
     def __primary_key__(cls) -> str:
-        # Check if a custom PK is defined on the class or its parents
-        if hasattr(cls, "_primary_key") and cls._primary_key is not None:
-            return cls._primary_key
+        # Check if a custom PK is defined on the class
+        if "__primary_key__" in cls.__dict__:
+            return cls.__dict__["__primary_key__"]
 
         # Fallback to 'id' field
         if "id" in cls.model_fields:
@@ -78,3 +77,4 @@ class BaseModel(PydanticBaseModel):
             raise TypeError(f"{cls.__name__} does not have a primary key.")
         
         return ""  # Return empty string for abstract models
+
