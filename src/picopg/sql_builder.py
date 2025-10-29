@@ -15,8 +15,9 @@ from .models import BaseModel
 class SQLBuilder:
     """Builds raw SQL queries for `BaseModel` instances.
 
-    This class uses static methods to remain stateless and ensure that query
-    generation is idempotent and free from side effects.
+    This class uses static methods to remain stateless. It dynamically computes
+    table names and primary keys by calling the `get_*` methods on the model
+    class, ensuring that model definitions remain the single source of truth.
     """
 
     @staticmethod
