@@ -21,7 +21,7 @@ from picopg import (
 
 
 class User(BaseModel):
-    __primary_key__ = "id"
+    _primary_key = "id"
     id: int | None = None
     name: str
     email: str
@@ -160,7 +160,7 @@ async def test_paginate():
 
 class Profile(BaseModel):
     __table_name__ = "profiles"
-    __primary_key__ = "user_id"
+    _primary_key = "user_id"
     user_id: int | None = None
     username: str
     bio: str | None = None
@@ -220,7 +220,7 @@ async def test_update_with_null_value(create_profile_table):
 class Product(BaseModel):
     __schema__ = "core"
     __table_name__ = "raw_materials"
-    __primary_key__ = "material_id"
+    _primary_key = "material_id"
     material_id: int | None = None
     name: str
     quantity: int
@@ -357,3 +357,48 @@ async def test_execute_raw():
     assert affected_rows == 1
     deleted_user = await select_one(User, email="exec@example.com")
     assert deleted_user is None
+
+
+@pytest.mark.asyncio
+async def test_abstract_model_inheritance():
+    """
+    Tests that a model can inherit from an abstract base model
+    without causing errors.
+    """
+
+    class AbstractBase(BaseModel):
+        __abstract__ = True
+        # This class has no primary key, which would normally cause an error.
+
+    class ConcreteModel(AbstractBase):
+        __table_name__ = "concrete"
+        id: int | None = None
+        name: str
+
+    # Setup table for the concrete model
+    pool = ConnectionManager.get_pool()
+    async with pool.connection() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS "concrete" (
+                    id SERIAL PRIMARY KEY,
+                    name VARCHAR(255) NOT NULL
+                )
+                """
+            )
+            await cur.execute('TRUNCATE TABLE "concrete" RESTART IDENTITY')
+
+    # Test that CRUD operations work on the concrete model
+    instance = ConcreteModel(name="test")
+    inserted = await insert(instance)
+    assert inserted.id is not None
+
+    retrieved = await select_one(ConcreteModel, id=inserted.id)
+    assert retrieved is not None
+    assert retrieved.name == "test"
+
+    # Teardown table
+    async with pool.connection() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute('DROP TABLE "concrete"')

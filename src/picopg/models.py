@@ -14,6 +14,14 @@ from pydantic import BaseModel as PydanticBaseModel
 from psycopg.sql import SQL, Identifier, Composed
 
 
+class classproperty:
+    def __init__(self, f):
+        self.f = f
+
+    def __get__(self, obj, owner):
+        return self.f(owner)
+
+
 class BaseModel(PydanticBaseModel):
     """Base class for database models.
 
@@ -29,12 +37,12 @@ class BaseModel(PydanticBaseModel):
 
     __table_name__: ClassVar[str]
     __full_table_name__: ClassVar[Composed]
-    __primary_key__: ClassVar[str]
+    _primary_key: ClassVar[str | None] = None
     __schema__: ClassVar[str | None] = None
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """
-        Initializes the subclass, inferring table name and primary key.
+        Initializes the subclass, inferring table name.
         """
         super().__init_subclass__(**kwargs)
 
@@ -55,9 +63,18 @@ class BaseModel(PydanticBaseModel):
         else:
             cls.__full_table_name__ = Composed([Identifier(base_table_name)])
 
-        # Configure primary key
-        if not hasattr(cls, "__primary_key__"):
-            if "id" in cls.model_fields:
-                cls.__primary_key__ = "id"
-            else:
-                raise TypeError(f"{cls.__name__} does not have a primary key.")
+    @classproperty
+    def __primary_key__(cls) -> str:
+        # Check if a custom PK is defined on the class or its parents
+        if hasattr(cls, "_primary_key") and cls._primary_key is not None:
+            return cls._primary_key
+
+        # Fallback to 'id' field
+        if "id" in cls.model_fields:
+            return "id"
+
+        # Raise error only for concrete models
+        if not getattr(cls, "__abstract__", False):
+            raise TypeError(f"{cls.__name__} does not have a primary key.")
+        
+        return ""  # Return empty string for abstract models
