@@ -12,69 +12,38 @@ from typing import Any, ClassVar
 
 from psycopg.sql import SQL, Composed, Identifier
 from pydantic import BaseModel as PydanticBaseModel
-
-
-class classproperty:
-    def __init__(self, f):
-        self.f = f
-
-    def __get__(self, obj, owner):
-        return self.f(owner)
+from psycopg.sql import SQL, Identifier, Composed
 
 
 class BaseModel(PydanticBaseModel):
-    """Base class for database models.
-
-    This class provides the core functionality for defining table models,
-    including automatic table name inference and primary key detection.
-
-    Attributes:
-        __table_name__: The unquoted base name of the database table.
-        __full_table_name__: The fully qualified, quoted name of the database table as a Composed object.
-        __primary_key__: The name of the primary key field.
-        __schema__: An optional database schema for the table.
-    """
+    """Base class for database models."""
 
     __table_name__: ClassVar[str]
-    __full_table_name__: ClassVar[Composed]
+    __primary_key__: ClassVar[str]
     __schema__: ClassVar[str | None] = None
 
-    def __init_subclass__(cls, **kwargs: Any) -> None:
-        """
-        Initializes the subclass, inferring table name.
-        """
-        super().__init_subclass__(**kwargs)
+    @classmethod
+    def get_table_name(cls) -> str:
+        if "__table_name__" in cls.__dict__:
+            return cls.__dict__["__table_name__"]
+        return re.sub(r"(?<!^)(?=[A-Z])", "_", cls.__name__).lower()
 
-        # Determine the base table name
-        if hasattr(cls, "__table_name__"):
-            base_table_name = cls.__table_name__
-        else:
-            base_table_name = re.sub(r"(?<!^)(?=[A-Z])", "_", cls.__name__).lower()
-
-        cls.__table_name__ = base_table_name
-
-        # Construct full, quoted table name with schema if provided
+    @classmethod
+    def get_full_table_name(cls) -> Composed:
+        table_name = cls.get_table_name()
         schema = getattr(cls, "__schema__", None)
         if schema:
-            cls.__full_table_name__ = Composed(
-                [Identifier(schema), SQL("."), Identifier(base_table_name)]
-            )
-        else:
-            cls.__full_table_name__ = Composed([Identifier(base_table_name)])
+            return Composed([Identifier(schema), SQL("."), Identifier(table_name)])
+        return Composed([Identifier(table_name)])
 
-    @classproperty
-    def __primary_key__(cls) -> str:
-        # Check if a custom PK is defined on the class
+    @classmethod
+    def get_primary_key(cls) -> str:
         if "__primary_key__" in cls.__dict__:
             return cls.__dict__["__primary_key__"]
-
-        # Fallback to 'id' field
         if "id" in cls.model_fields:
             return "id"
-
-        # Raise error only for concrete models
         if not getattr(cls, "__abstract__", False):
             raise TypeError(f"{cls.__name__} does not have a primary key.")
+        return ""
 
-        return ""  # Return empty string for abstract models
 

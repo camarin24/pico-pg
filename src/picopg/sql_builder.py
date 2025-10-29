@@ -31,8 +31,9 @@ class SQLBuilder:
         """
         model_class = type(model)
         data = model.model_dump()
-        if data.get(model_class.__primary_key__) is None:
-            data.pop(model_class.__primary_key__, None)
+        pk = model_class.get_primary_key()
+        if data.get(pk) is None:
+            data.pop(pk, None)
 
         columns = [Identifier(col) for col in data.keys()]
         placeholders = [SQL("%s")] * len(data)
@@ -40,7 +41,7 @@ class SQLBuilder:
         query = Composed(
             [
                 SQL("INSERT INTO"),
-                model_class.__full_table_name__,
+                model_class.get_full_table_name(),
                 SQL("("),
                 Composed(columns).join(SQL(", ")),
                 SQL(") VALUES ("),
@@ -68,7 +69,7 @@ class SQLBuilder:
         Returns:
             A tuple containing the SQL query and a list of parameters.
         """
-        query_parts = [SQL("SELECT * FROM"), model_class.__full_table_name__]
+        query_parts = [SQL("SELECT * FROM"), model_class.get_full_table_name()]
         params = []
         if where:
             conditions = []
@@ -107,7 +108,8 @@ class SQLBuilder:
         """
         model_class = type(model)
         data = model.model_dump()
-        pk_value = data.pop(model_class.__primary_key__)
+        pk = model_class.get_primary_key()
+        pk_value = data.pop(pk)
 
         set_parts = Composed(
             [Composed([Identifier(key), SQL("= %s")]) for key in data.keys()]
@@ -116,11 +118,11 @@ class SQLBuilder:
         query = Composed(
             [
                 SQL("UPDATE"),
-                model_class.__full_table_name__,
+                model_class.get_full_table_name(),
                 SQL("SET"),
                 set_parts,
                 SQL("WHERE"),
-                Identifier(model_class.__primary_key__),
+                Identifier(pk),
                 SQL("= %s RETURNING *"),
             ]
         )
@@ -138,14 +140,15 @@ class SQLBuilder:
             A tuple containing the SQL query and a list of parameters.
         """
         model_class = type(model)
-        pk_value = getattr(model, model_class.__primary_key__)
+        pk = model_class.get_primary_key()
+        pk_value = getattr(model, pk)
 
         query = Composed(
             [
                 SQL("DELETE FROM"),
-                model_class.__full_table_name__,
+                model_class.get_full_table_name(),
                 SQL("WHERE"),
-                Identifier(model_class.__primary_key__),
+                Identifier(pk),
                 SQL("= %s"),
             ]
         )
@@ -166,7 +169,7 @@ class SQLBuilder:
         """
         query_parts = [
             SQL("SELECT COUNT(*) as total FROM"),
-            model_class.__full_table_name__,
+            model_class.get_full_table_name(),
         ]
         params = []
         if where:

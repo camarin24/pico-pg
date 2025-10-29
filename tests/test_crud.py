@@ -404,3 +404,48 @@ async def test_abstract_model_inheritance():
     async with pool.connection() as conn:
         async with conn.cursor() as cur:
             await cur.execute('DROP TABLE "concrete"')
+
+
+@pytest.mark.asyncio
+async def test_abstract_model_inheritance():
+    """
+    Tests that a model can inherit from an abstract base model
+    without causing errors.
+    """
+
+    class AbstractBase(BaseModel):
+        __abstract__ = True
+        # This class has no primary key, which would normally cause an error.
+
+    class ConcreteModel(AbstractBase):
+        __table_name__ = "concrete"
+        id: int | None = None
+        name: str
+
+    # Setup table for the concrete model
+    pool = ConnectionManager.get_pool()
+    async with pool.connection() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS "concrete" (
+                    id SERIAL PRIMARY KEY,
+                    name VARCHAR(255) NOT NULL
+                )
+                """
+            )
+            await cur.execute('TRUNCATE TABLE "concrete" RESTART IDENTITY')
+
+    # Test that CRUD operations work on the concrete model
+    instance = ConcreteModel(name="test")
+    inserted = await insert(instance)
+    assert inserted.id is not None
+
+    retrieved = await select_one(ConcreteModel, id=inserted.id)
+    assert retrieved is not None
+    assert retrieved.name == "test"
+
+    # Teardown table
+    async with pool.connection() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute('DROP TABLE "concrete"')

@@ -207,7 +207,7 @@ async def paginate(
 
     # Default to sorting by primary key for stable pagination
     if order_by is None:
-        order_by = model_class.__primary_key__
+        order_by = model_class.get_primary_key()
 
     async with pool.connection() as conn:
         async with conn.cursor(row_factory=dict_row) as cur:
