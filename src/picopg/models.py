@@ -75,6 +75,6 @@ class BaseModel(PydanticBaseModel):
         # Raise error only for concrete models
         if not getattr(cls, "__abstract__", False):
             raise TypeError(f"{cls.__name__} does not have a primary key.")
-        
+
         return ""  # Return empty string for abstract models
 
