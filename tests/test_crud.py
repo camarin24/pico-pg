@@ -10,13 +10,13 @@ from picopg import (
     ConnectionManager,
     Partial,
     delete,
+    execute_raw,
     insert,
     paginate,
     select_all,
     select_one,
-    update,
     select_raw,
-    execute_raw,
+    update,
 )
 
 
@@ -345,7 +345,9 @@ async def test_execute_raw():
 
     # Test 1: Raw update
     update_query = 'UPDATE "user" SET name = %s WHERE email = %s'
-    affected_rows = await execute_raw(update_query, ["Updated Name", "exec@example.com"])
+    affected_rows = await execute_raw(
+        update_query, ["Updated Name", "exec@example.com"]
+    )
     assert affected_rows == 1
     updated_user = await select_one(User, email="exec@example.com")
     assert updated_user is not None

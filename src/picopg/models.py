@@ -10,8 +10,8 @@ from __future__ import annotations
 import re
 from typing import Any, ClassVar
 
+from psycopg.sql import SQL, Composed, Identifier
 from pydantic import BaseModel as PydanticBaseModel
-from psycopg.sql import SQL, Identifier, Composed
 
 
 class classproperty:
@@ -76,5 +76,5 @@ class BaseModel(PydanticBaseModel):
         # Raise error only for concrete models
         if not getattr(cls, "__abstract__", False):
             raise TypeError(f"{cls.__name__} does not have a primary key.")
-        
+
         return ""  # Return empty string for abstract models
