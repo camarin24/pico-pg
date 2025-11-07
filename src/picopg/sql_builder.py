@@ -7,6 +7,7 @@ construct raw SQL queries for `BaseModel` instances.
 from __future__ import annotations
 
 from typing import Any, Type
+
 from psycopg.sql import SQL, Composed, Identifier
 
 from .models import BaseModel
@@ -79,15 +80,17 @@ class SQLBuilder:
                     conditions.append(Composed([Identifier(key), SQL(" = ANY(%s)")]))
                 else:
                     conditions.append(Composed([Identifier(key), SQL(" = %s")]))
-            
+
             query_parts.extend([SQL("WHERE"), Composed(conditions).join(SQL(" AND "))])
             params.extend(where.values())
-        
+
         if order_by:
             if isinstance(order_by, str):
                 order_by = [order_by]
-            
-            order_parts = Composed([Identifier(col) for col in order_by]).join(SQL(", "))
+
+            order_parts = Composed([Identifier(col) for col in order_by]).join(
+                SQL(", ")
+            )
             query_parts.extend([SQL("ORDER BY"), order_parts])
 
         if limit:
@@ -208,6 +211,32 @@ class SQLBuilder:
             A tuple containing the SQL query and a list of parameters.
         """
         query, params = SQLBuilder.build_select(model_class, where, order_by=order_by)
+        offset = (page - 1) * page_size
+
+        query = Composed([query, SQL("LIMIT %s OFFSET %s")])
+        params.extend([page_size, offset])
+        return query, params
+
+    @staticmethod
+    def build_paginate_from_sql(
+        query: SQL | Composed,
+        page: int,
+        page_size: int,
+        params: list[Any] | None = None,
+    ) -> tuple[Composed, list[Any]]:
+        """Builds a paginated SELECT query from a raw SQL query.
+
+        Args:
+            query: The raw SQL query.
+            page: The page number to retrieve.
+            page_size: The number of records per page.
+            params: An optional list of parameters for the raw SQL query.
+
+        Returns:
+            A tuple containing the SQL query and a list of parameters.
+        """
+        if params is None:
+            params = []
         offset = (page - 1) * page_size
 
         query = Composed([query, SQL("LIMIT %s OFFSET %s")])

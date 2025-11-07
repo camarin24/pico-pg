@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import Any, LiteralString, Type, TypeVar
 
 from psycopg.rows import dict_row
+from psycopg.sql import SQL
 
 from .connections import ConnectionManager
 from .models import BaseModel
@@ -222,6 +223,47 @@ async def paginate(
                 model_class, page, page_size, where_dict, order_by
             )
             await cur.execute(query, params)
+            results = await cur.fetchall()
+            models = [model_class.model_validate(row) for row in results]
+            return models, total_count
+
+
+async def paginate_sql(
+    model_class: Type[T],
+    count_query: LiteralString,
+    query: LiteralString,
+    page: int,
+    page_size: int,
+    params: list[Any] | None = None,
+) -> tuple[list[T], int]:
+    """Fetches a paginated list of models from a raw SQL query.
+
+    Args:
+        model_class: The model class to query.
+        count_query: The raw SQL query to count the total number of records.
+        The query should be a valid SQL query that returns a single column named "total" containing the total number of records.
+        query: The raw SQL query to fetch the records.
+        page: The page number to retrieve.
+        page_size: The number of records per page.
+        params: An optional list of parameters to pass to the query.
+
+    Returns:
+        A tuple containing the list of models for the current page and the
+        total number of records.
+    """
+    pool = ConnectionManager.get_pool()
+    async with pool.connection() as conn:
+        async with conn.cursor(row_factory=dict_row) as cur:
+            # Get total count
+            await cur.execute(count_query, params)
+            count_result = await cur.fetchone()
+            total_count = count_result["total"] if count_result else 0
+
+            # Get paginated results
+            paginated_query, paginated_params = SQLBuilder.build_paginate_from_sql(
+                SQL(query), page, page_size, params
+            )
+            await cur.execute(paginated_query, paginated_params)
             results = await cur.fetchall()
             models = [model_class.model_validate(row) for row in results]
             return models, total_count
