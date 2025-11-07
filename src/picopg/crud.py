@@ -228,7 +228,7 @@ async def paginate(
             return models, total_count
 
 
-async def paginate_sql(
+async def paginate_raw(
     model_class: Type[T],
     count_query: LiteralString,
     query: LiteralString,
@@ -254,12 +254,10 @@ async def paginate_sql(
     pool = ConnectionManager.get_pool()
     async with pool.connection() as conn:
         async with conn.cursor(row_factory=dict_row) as cur:
-            # Get total count
             await cur.execute(count_query, params)
             count_result = await cur.fetchone()
             total_count = count_result["total"] if count_result else 0
 
-            # Get paginated results
             paginated_query, paginated_params = SQLBuilder.build_paginate_from_sql(
                 SQL(query), page, page_size, params
             )

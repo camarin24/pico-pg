@@ -34,7 +34,7 @@ class SQLBuilder:
         model_class = type(model)
         data = model.model_dump()
         pk = model_class.get_primary_key()
-        if data.get(pk) is None:
+        if not data.get(pk):
             data.pop(pk, None)
 
         columns = [Identifier(col) for col in data.keys()]

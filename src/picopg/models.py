@@ -8,11 +8,10 @@ inference, primary key detection, and schema support.
 from __future__ import annotations
 
 import re
-from typing import Any, ClassVar
+from typing import ClassVar
 
 from psycopg.sql import SQL, Composed, Identifier
 from pydantic import BaseModel as PydanticBaseModel
-from psycopg.sql import SQL, Identifier, Composed
 
 
 class BaseModel(PydanticBaseModel):
@@ -31,7 +30,7 @@ class BaseModel(PydanticBaseModel):
             abstract base class and is not mapped to a database table.
     """
 
-    __table_name__: ClassVar[str]
+    __tablename__: ClassVar[str]
     __primary_key__: ClassVar[str]
     __schema__: ClassVar[str | None] = None
 
@@ -45,8 +44,8 @@ class BaseModel(PydanticBaseModel):
         Returns:
             The database table name.
         """
-        if "__table_name__" in cls.__dict__:
-            return cls.__dict__["__table_name__"]
+        if "__tablename__" in cls.__dict__:
+            return cls.__dict__["__tablename__"]
         return re.sub(r"(?<!^)(?=[A-Z])", "_", cls.__name__).lower()
 
     @classmethod
@@ -81,6 +80,3 @@ class BaseModel(PydanticBaseModel):
         if not getattr(cls, "__abstract__", False):
             raise TypeError(f"{cls.__name__} does not have a primary key.")
         return ""
-
-
-

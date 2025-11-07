@@ -8,6 +8,7 @@ for creating "query by example" filters.
 from __future__ import annotations
 
 from typing import Type, TypeVar
+
 from pydantic import create_model
 
 from .models import BaseModel
@@ -28,7 +29,7 @@ def Partial(model_class: Type[T]) -> Type[T]:
         A new `BaseModel` subclass where all fields are optional.
     """
     fields = {
-        name: (field.annotation | None, None)
+        name: (field.annotation or None, None)
         for name, field in model_class.model_fields.items()
     }
     return create_model(
