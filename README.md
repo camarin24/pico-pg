@@ -6,12 +6,12 @@ It is designed for developers who prefer explicit SQL generation and a simple, f
 
 ## Features
 
-*   **Pydantic Integration:** Define database schemas using Pydantic `BaseModel` for automatic data validation and type hinting.
-*   **Asynchronous:** Built on `psycopg` for high-performance, non-blocking I/O.
-*   **Simple CRUD API:** Direct, function-based access for `insert`, `select_one`, `select_all`, `update`, `delete`, and `paginate`.
-*   **Query by Example:** Use partial models for flexible filtering in select and paginate operations.
-*   **Stateless SQL Builder:** Explicit and safe SQL generation using parameterized queries.
-*   **Connection Pooling:** Centralized management of the `psycopg_pool.AsyncConnectionPool`.
+- **Pydantic Integration:** Define database schemas using Pydantic `BaseModel` for automatic data validation and type hinting.
+- **Asynchronous:** Built on `psycopg` for high-performance, non-blocking I/O.
+- **Simple CRUD API:** Direct, function-based access for `insert`, `select_one`, `select_all`, `update`, `delete`, and `paginate`.
+- **Query by Example:** Use partial models for flexible filtering in select and paginate operations.
+- **Stateless SQL Builder:** Explicit and safe SQL generation using parameterized queries.
+- **Connection Pooling:** Centralized management of the `psycopg_pool.AsyncConnectionPool`.
 
 ## Installation
 
@@ -25,9 +25,9 @@ pip install picopg
 
 Database tables are represented by classes inheriting from `picopg.BaseModel`.
 
-*   **Table Name Inference:** Class names are automatically converted to snake\_case table names (e.g., `MyUser` -> `"my_user"`).
-*   **Primary Key:** Defaults to a field named `id`. You can override this with the `__primary_key__` class variable.
-*   **Schema Support:** Use the `__schema__` class variable to specify a PostgreSQL schema.
+- **Table Name Inference:** Class names are automatically converted to snake_case table names (e.g., `MyUser` -> `"my_user"`).
+- **Primary Key:** Defaults to a field named `id`. You can override this with the `__primary_key__` class variable.
+- **Schema Support:** Use the `__schema__` class variable to specify a PostgreSQL schema.
 
 ```python
 from picopg import BaseModel
@@ -35,7 +35,7 @@ from datetime import datetime
 
 class User(BaseModel):
     # Optional: Override inferred table name
-    __table_name__ = '"users_table"'
+    __tablename__ = '"users_table"'
     # Optional: Specify a schema
     __schema__ = "app_data"
     # Optional: Override primary key (defaults to 'id')
@@ -121,7 +121,7 @@ active_users = await select_all(User, is_active=True)
 
 # Select all users with a specific username prefix (using Partial for filtering)
 # Note: PicoPG's built-in filtering is for equality (=) only.
-# For complex queries (LIKE, >, etc.), you must use raw SQL via ConnectionManager.get_pool().
+# For complex queries (LIKE, >, etc.), you must use raw SQL via select_raw
 ```
 
 ### Update

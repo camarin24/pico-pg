@@ -79,4 +79,4 @@ class BaseModel(PydanticBaseModel):
             return "id"
         if not getattr(cls, "__abstract__", False):
             raise TypeError(f"{cls.__name__} does not have a primary key.")
-        return ""
+        raise TypeError("No primary key defined.")
