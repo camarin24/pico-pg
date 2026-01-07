@@ -85,7 +85,11 @@ async def select_one(
 
 
 async def select_all(
-    model_class: Type[T], where: T | None = None, **kwargs: Any
+    model_class: Type[T],
+    where: T | None = None,
+    limit: int | None = None,
+    order_by: str | list[str] | None = None,
+    **kwargs: Any,
 ) -> list[T]:
     """Selects multiple records from the database.
 
@@ -116,7 +120,10 @@ async def select_all(
                 )
         where_dict = kwargs
 
-    query, params = SQLBuilder.build_select(model_class, where_dict)
+    if order_by is None:
+        order_by = model_class.get_primary_key()
+
+    query, params = SQLBuilder.build_select(model_class, where_dict, limit, order_by)
     async with pool.connection() as conn:
         async with conn.cursor(row_factory=dict_row) as cur:
             await cur.execute(query, params)
