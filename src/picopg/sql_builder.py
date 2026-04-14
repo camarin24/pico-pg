@@ -40,11 +40,14 @@ class SQLBuilder:
         columns = [Identifier(col) for col in data.keys()]
         placeholders = [SQL("%s")] * len(data)
 
+        # INSERT is assembled manually because its grammar has tokens that
+        # should hug each other (e.g. `table(col, ...)`, `) VALUES (`) where a
+        # blanket space-separated join would produce ugly output.
         query = Composed(
             [
-                SQL("INSERT INTO"),
+                SQL("INSERT INTO "),
                 model_class.get_full_table_name(),
-                SQL("("),
+                SQL(" ("),
                 Composed(columns).join(SQL(", ")),
                 SQL(") VALUES ("),
                 Composed(placeholders).join(SQL(", ")),
@@ -71,8 +74,11 @@ class SQLBuilder:
         Returns:
             A tuple containing the SQL query and a list of parameters.
         """
-        query_parts = [SQL("SELECT * FROM"), model_class.get_full_table_name()]
-        params = []
+        query_parts: list[Any] = [
+            SQL("SELECT * FROM"),
+            model_class.get_full_table_name(),
+        ]
+        params: list[Any] = []
         if where:
             conditions = []
             for key, value in where.items():
@@ -97,7 +103,7 @@ class SQLBuilder:
             query_parts.extend([SQL("LIMIT %s")])
             params.append(limit)
 
-        query = Composed(query_parts)
+        query = SQL(" ").join(query_parts)
         return query, params
 
     @staticmethod
@@ -116,10 +122,10 @@ class SQLBuilder:
         pk_value = data.pop(pk)
 
         set_parts = Composed(
-            [Composed([Identifier(key), SQL("= %s")]) for key in data.keys()]
+            [Composed([Identifier(key), SQL(" = %s")]) for key in data.keys()]
         ).join(SQL(", "))
 
-        query = Composed(
+        query = SQL(" ").join(
             [
                 SQL("UPDATE"),
                 model_class.get_full_table_name(),
@@ -147,7 +153,7 @@ class SQLBuilder:
         pk = model_class.get_primary_key()
         pk_value = getattr(model, pk)
 
-        query = Composed(
+        query = SQL(" ").join(
             [
                 SQL("DELETE FROM"),
                 model_class.get_full_table_name(),
@@ -171,11 +177,11 @@ class SQLBuilder:
         Returns:
             A tuple containing the SQL query and a list of parameters.
         """
-        query_parts = [
+        query_parts: list[Any] = [
             SQL("SELECT COUNT(*) as total FROM"),
             model_class.get_full_table_name(),
         ]
-        params = []
+        params: list[Any] = []
         if where:
             conditions = []
             for key, value in where.items():
@@ -187,7 +193,7 @@ class SQLBuilder:
             query_parts.extend([SQL("WHERE"), Composed(conditions).join(SQL(" AND "))])
             params.extend(where.values())
 
-        query = Composed(query_parts)
+        query = SQL(" ").join(query_parts)
         return query, params
 
     @staticmethod
@@ -213,7 +219,7 @@ class SQLBuilder:
         query, params = SQLBuilder.build_select(model_class, where, order_by=order_by)
         offset = (page - 1) * page_size
 
-        query = Composed([query, SQL("LIMIT %s OFFSET %s")])
+        query = SQL(" ").join([query, SQL("LIMIT %s OFFSET %s")])
         params.extend([page_size, offset])
         return query, params
 
@@ -239,6 +245,6 @@ class SQLBuilder:
             params = []
         offset = (page - 1) * page_size
 
-        query = Composed([query, SQL("LIMIT %s OFFSET %s")])
+        query = SQL(" ").join([query, SQL("LIMIT %s OFFSET %s")])
         params.extend([page_size, offset])
         return query, params

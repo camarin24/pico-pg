@@ -21,8 +21,9 @@ class BaseModel(PydanticBaseModel):
     the creation of abstract base models for shared configurations.
 
     Class Attributes:
-        __table_name__ (str): Optional. The name of the database table. If not
+        __tablename__ (str): Optional. The name of the database table. If not
             provided, it's inferred from the class name (e.g., `MyUser` -> `my_user`).
+            ``__table_name__`` is also accepted as an alias.
         __primary_key__ (str): Optional. The name of the primary key field.
             Defaults to `id` if a field with that name exists.
         __schema__ (str | None): Optional. The database schema for the table.
@@ -38,14 +39,17 @@ class BaseModel(PydanticBaseModel):
     def get_table_name(cls) -> str:
         """Computes the table name for the model.
 
-        Uses the `__table_name__` attribute if defined, otherwise infers it
-        from the class name.
+        Uses the ``__tablename__`` attribute if defined (also accepts
+        ``__table_name__`` as an alias), otherwise infers it from the
+        class name.
 
         Returns:
             The database table name.
         """
         if "__tablename__" in cls.__dict__:
             return cls.__dict__["__tablename__"]
+        if "__table_name__" in cls.__dict__:
+            return cls.__dict__["__table_name__"]
         return re.sub(r"(?<!^)(?=[A-Z])", "_", cls.__name__).lower()
 
     @classmethod
