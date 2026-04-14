@@ -26,6 +26,11 @@
   fragment. `build_insert` retains manual assembly because its grammar has
   tokens (parentheses, commas) that should hug their neighbors.
 
+- **`__table_name__` alias**: `BaseModel.get_table_name()` now accepts
+  `__table_name__` as an alias for `__tablename__`. Previously, setting
+  `__table_name__` on a model was silently ignored and the table name was
+  inferred from the class name, causing queries to hit the wrong table.
+
 ### Deprecated / Yanked
 
 - **0.1.9, 0.1.10, 0.1.11** are affected by the bug above and should be
