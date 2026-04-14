@@ -19,7 +19,7 @@ from picopg.sql_builder import SQLBuilder
 
 
 class SBUser(BaseModel):
-    __table_name__ = "sb_user"
+    __tablename__ = "sb_user"
     __primary_key__ = "id"
     id: int | None = None
     name: str
