@@ -78,9 +78,7 @@ async def test_build_select_where_plus_limit():
 @pytest.mark.asyncio
 async def test_build_select_where_plus_order_by():
     # Regression: previously rendered "... = $1ORDER BY ..." → syntax error.
-    query, params = SQLBuilder.build_select(
-        SBUser, where={"name": "x"}, order_by="id"
-    )
+    query, params = SQLBuilder.build_select(SBUser, where={"name": "x"}, order_by="id")
     await _execute(query, params)
 
 
@@ -107,9 +105,7 @@ async def test_build_select_where_plus_limit_plus_order_by():
 @pytest.mark.asyncio
 async def test_build_select_where_list_filter_plus_limit():
     # Covers the ANY(%s) branch followed by LIMIT.
-    query, params = SQLBuilder.build_select(
-        SBUser, where={"id": [1, 2, 3]}, limit=5
-    )
+    query, params = SQLBuilder.build_select(SBUser, where={"id": [1, 2, 3]}, limit=5)
     await _execute(query, params)
 
 
