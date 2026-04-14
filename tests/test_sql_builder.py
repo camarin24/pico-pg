@@ -19,7 +19,7 @@ from picopg.sql_builder import SQLBuilder
 
 
 class SBUser(BaseModel):
-    __table_name__ = "sb_user"
+    __tablename__ = "sb_user"
     __primary_key__ = "id"
     id: int | None = None
     name: str
@@ -186,3 +186,38 @@ async def test_build_paginate_with_where_and_order_by():
         SBUser, page=1, page_size=10, where={"name": "x"}, order_by="name"
     )
     await _execute(query, params)
+
+
+# --- TABLE NAME RESOLUTION -------------------------------------------------
+
+
+def test_tablename_canonical():
+    """__tablename__ is the canonical attribute."""
+
+    class M(BaseModel):
+        __tablename__ = "my_custom_table"
+        __primary_key__ = "id"
+        id: int | None = None
+
+    assert M.get_table_name() == "my_custom_table"
+
+
+def test_table_name_alias():
+    """__table_name__ is accepted as an alias."""
+
+    class M(BaseModel):
+        __table_name__ = "my_custom_table"
+        __primary_key__ = "id"
+        id: int | None = None
+
+    assert M.get_table_name() == "my_custom_table"
+
+
+def test_table_name_inferred():
+    """Without either attribute, name is inferred from the class name."""
+
+    class MyCustomTable(BaseModel):
+        __primary_key__ = "id"
+        id: int | None = None
+
+    assert MyCustomTable.get_table_name() == "my_custom_table"
